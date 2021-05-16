@@ -83,14 +83,13 @@ int main() {
     connects.front()->receiveMessage(*values.data(), numberOfValues * sizeof(float));
     connects.front()->receiveMessage(*b.data(), matrixDimension * sizeof(float));
 
-
     std::vector<cl::Device> devices;
     platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
     device = devices.back();
     std::cout << "Using device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
-//    std::ifstream kernel_file("src/steepestDescent.cl");
-    std::ifstream kernel_file("conjugateGradient.cl");
+//    std::ifstream kernel_file("kernels/steepestDescent.cl");
+    std::ifstream kernel_file("kernels/conjugateGradient.cl");
     std::stringstream srcStream;
     srcStream << kernel_file.rdbuf();
     std::string src = srcStream.str();
@@ -143,6 +142,6 @@ int main() {
     queue.enqueueReadBuffer(resultBuf, CL_TRUE, 0, 2 * sizeof(float), result.data());
 
     connects.front()->sendMessage(*x.data(), matrixDimension * sizeof(float));
-    std::cout << "Iterations: " << static_cast<int>(result[0]) << std::endl;
-    std::cout << "Residual length: " << result[1] << std::endl;
+    connects.front()->sendMessage(*result.data(), 2 * sizeof(float));
+
 }

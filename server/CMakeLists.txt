@@ -12,5 +12,5 @@ set(TCP_DIR ../TCP)
 target_link_libraries(${PROJECT} PRIVATE TCPSocket OpenCL pthread)
 target_include_directories(${PROJECT} PUBLIC ${TCP_DIR})
 
-configure_file(steepestDescent.cl steepestDescent.cl COPYONLY)
-configure_file(conjugateGradient.cl conjugateGradient.cl COPYONLY)
+configure_file(kernels/steepestDescent.cl kernels/steepestDescent.cl COPYONLY)
+configure_file(kernels/conjugateGradient.cl kernels/conjugateGradient.cl COPYONLY)

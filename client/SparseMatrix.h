@@ -12,6 +12,7 @@ private:
 
     std::vector<int> rowIds, colIds;
     std::vector<float> values;
+    std::vector<float> b;
 
     std::ifstream matrix;
 public:
@@ -25,7 +26,10 @@ public:
     int* getRowIds() { return rowIds.data(); }
     int* getColIds() { return colIds.data(); }
     float* getValues() { return values.data(); }
+    float* getVectorB() { return b.data(); }
 
+    void fillVectorBWithRandomValues(float minValue, float maxValue);
+    void fillVectorBFullyWithConcreteValue(float value);
 };
 
 #endif //COURSE_WORK_SOLVE_SYSTEM_OF_SPARSE_LINEAR_EQUATIONS_SPARSEMATRIX_H
