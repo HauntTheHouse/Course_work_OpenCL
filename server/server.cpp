@@ -1,3 +1,5 @@
+#define CL_HPP_TARGET_OPENCL_VERSION 210
+#include <CL/cl2.hpp>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -6,18 +8,13 @@
 #include <memory>
 #include <ctime>
 
-#define CL_HPP_TARGET_OPENCL_VERSION 210
-#include <CL/cl2.hpp>
-
 #include <TCPSocket.h>
 
-int main()
-{
+int main() {
     std::shared_ptr<TCPSocket> serverSocket;
     std::vector<std::unique_ptr<TCPSocket>> connects;
 
-    try
-    {
+    try {
         serverSocket = std::make_unique<TCPSocket>(AF_INET, SOCK_STREAM);
         serverSocket->setSocketAddress(AF_INET, htonl(INADDR_ANY), htons(8080));
         serverSocket->bindSocket();
@@ -26,11 +23,52 @@ int main()
         connects.push_back(std::make_unique<TCPSocket>());
         connects.front()->acceptSocket(serverSocket.get());
     }
-    catch(const std::invalid_argument& e)
-    {
+    catch (const std::invalid_argument &e) {
         std::cerr << e.what() << std::endl;
         return -1;
     }
+
+    cl::Program program;
+    cl::Context context;
+    cl::Device device;
+
+    std::vector<cl::Platform> platforms;
+    cl::Platform::get(&platforms);
+    if (platforms.empty()) {
+        std::cerr << "No platforms found!" << std::endl;
+        exit(1);
+    }
+
+    connects.front()->sendMessage(platforms.size(), sizeof(int));
+    for (int i = 0; i < platforms.size(); ++i)
+    {
+        std::stringstream platformsOutStream;
+        platformsOutStream << i + 1 << ". " << platforms[i].getInfo<CL_PLATFORM_NAME>() << std::endl;
+
+        std::vector<cl::Device> devices;
+        platforms[i].getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+        platformsOutStream << "\tDevices:" << std::endl;
+        for (auto& dev : devices)
+        {
+            platformsOutStream << '\t' << dev.getInfo<CL_DEVICE_NAME>() << std::endl;
+            platformsOutStream << "\tMAX_WORK_GROUP_SIZE: " << dev.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() << std::endl;
+            for (auto& itemSize : dev.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>())
+            {
+                platformsOutStream << "\t\tMAX_ITEM_SIZE: " << itemSize << std::endl;
+            }
+            platformsOutStream << "\tMAX_WORK_ITEM_DIMENSIONS: " << dev.getInfo<CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS>() << std::endl;
+            platformsOutStream << "\tMAX_COMPUTE_UNITS: " << dev.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
+        }
+        connects.front()->sendMessage(platformsOutStream.str().size(), sizeof(int));
+        connects.front()->sendMessage(*&platformsOutStream.str()[0], platformsOutStream.str().size());
+    }
+
+    int choose;
+    connects.front()->receiveMessage(choose, sizeof(int));
+    auto platform = platforms[choose - 1];
+
+    std::cout << std::endl << "Using platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
 
     int matrixDimension, numberOfValues;
     connects.front()->receiveMessage(matrixDimension, sizeof(int));
@@ -45,52 +83,6 @@ int main()
     connects.front()->receiveMessage(*values.data(), numberOfValues * sizeof(float));
     connects.front()->receiveMessage(*b.data(), matrixDimension * sizeof(float));
 
-//    std::cout << matrixDimension << '\t' << matrixDimension << '\t' << numberOfValues << std::endl;
-//    for (int i = 0; i < numberOfValues; ++i)
-//    {
-//        std::cout << rowIds[i] << '\t' << colIds[i] << '\t' << values[i] << std::endl;
-//    }
-
-    cl::Program program;
-    cl::Context context;
-    cl::Device device;
-
-    std::vector<cl::Platform> platforms;
-    cl::Platform::get(&platforms);
-    if (platforms.empty())
-    {
-        std::cerr << "No platforms found!" << std::endl;
-        exit(1);
-    }
-    std::cout << "PLATFORMS:" << std::endl;
-    for (auto& platform : platforms)
-    {
-        std::cout << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
-
-        std::vector<cl::Device> devices;
-        platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
-
-        std::cout << "\tDEVICES:" << std::endl;
-        for (auto& dev : devices)
-        {
-            std::cout << '\t' << dev.getInfo<CL_DEVICE_NAME>() << std::endl;
-            std::cout << "\tMAX_WORK_GROUP_SIZE: " << dev.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() << std::endl;
-            for (auto& itemSize : dev.getInfo<CL_DEVICE_MAX_WORK_ITEM_SIZES>())
-            {
-                std::cout << "\t\tMAX_ITEM_SIZE: " << itemSize << std::endl;
-            }
-            std::cout << "\tMAX_WORK_ITEM_DIMENSIONS: " << dev.getInfo<CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS>() << std::endl;
-            std::cout << "\tMAX_COMPUTE_UNITS: " << dev.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
-
-//            std::cout << "\tMAX_GLOBAL_VARIABLE_SIZE: " << dev.getInfo<CL_DEVICE_MAX_GLOBAL_VARIABLE_SIZE>() << std::endl;
-
-        }
-    }
-
-    auto platform = platforms.back();
-//    auto platform = platforms.front();
-
-    std::cout << std::endl << "Using platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
 
     std::vector<cl::Device> devices;
     platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
