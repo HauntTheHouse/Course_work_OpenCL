@@ -1,15 +1,9 @@
 #include "TCPSocket.h"
 #include <iostream>
 #include <cstring>
-#include <signal.h>
-
-void sigpipe_handler(int unused)
-{
-}
 
 TCPSocket::TCPSocket(const int &domain, const int& type)
 {
-//    signal(SIGPIPE, SIG_IGN);
     socketFD = socket(domain, type, 0);
     if (socketFD == -1)
     {
@@ -79,15 +73,3 @@ void TCPSocket::acceptSocket(const TCPSocket* server)
         std::cout << "Server accept the client..." << std::endl;
     }
 }
-
-//template <typename T>
-//void TCPSocket::receiveMessage(T& msg, const int& len)
-//{
-//    recv(socketFD, &msg, len, 0);
-//}
-//
-//template <typename T>
-//void TCPSocket::sendMessage(const T& msg, const int& len)
-//{
-//    send(socketFD, &msg, len, 0);
-//}
