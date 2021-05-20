@@ -141,6 +141,7 @@ int main()
 
                 std::vector<float> x(sparseMatrix->getMatrixDimension());
                 std::vector<float> result(2);
+                double computeTime;
 
                 int kernelWorkGroupSize;
                 clientSocket->receiveMessage(kernelWorkGroupSize, sizeof(int));
@@ -152,13 +153,15 @@ int main()
 
                 clientSocket->receiveMessage(*x.data(), x.size() * sizeof(float));
                 clientSocket->receiveMessage(*result.data(), result.size() * sizeof(float));
+                clientSocket->receiveMessage(computeTime, sizeof(double));
 
                 std::cout << "x: ";
                 for (auto value : x)
                     std::cout << "{" << value << "}, ";
                 std::cout << std::endl << std::endl;
                 std::cout << "Iterations: " << static_cast<int>(result[0]) << std::endl;
-                std::cout << "Residual length: " << result[1] << std::endl;
+                std::cout << "Residual length: " << result[1] << std::endl << std::endl;
+                std::cout << "Compute time: " << computeTime << " ms" << std::endl;
                 break;
             }
             default:

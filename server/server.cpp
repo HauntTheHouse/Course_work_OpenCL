@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <memory>
+#include <ctime>
 
 #include <TCPSocket.h>
 
@@ -119,41 +120,50 @@ void solveLinearEquation(TCPSocket* connect)
         exit(1);
     }
 
-    cl::Buffer rowsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int), rowIds.data());
-    cl::Buffer colsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int), colIds.data());
-    cl::Buffer valuesBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(float), values.data());
-    cl::Buffer bBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, matrixDimension * sizeof(float), b.data());
-    cl::Buffer xBuf(context, CL_MEM_READ_WRITE, matrixDimension * sizeof(float));
-    cl::Buffer resultBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, 2 * sizeof(float));
-
-    cl::Kernel kernel(program, "conjugateGradient");
-    int kernelWorkGroupSize = kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
-    std::cout << "KERNEL_WORK_GROUP_SIZE: " << kernelWorkGroupSize << std::endl;
-    connect->sendMessage(kernelWorkGroupSize, sizeof(int));
-    if (matrixDimension > kernelWorkGroupSize)
-        return;
-
-    kernel.setArg(0, sizeof(int), &matrixDimension);
-    kernel.setArg(1, sizeof(int), &numberOfValues);
-    kernel.setArg(2, cl::Local(matrixDimension * sizeof(float)));
-    kernel.setArg(3, xBuf);
-//    kernel.setArg(3, cl::Local(dimension * sizeof(float)));
-    kernel.setArg(4, cl::Local(matrixDimension * sizeof(float)));
-    kernel.setArg(5, cl::Local(matrixDimension * sizeof(float)));
-    kernel.setArg(6, rowsBuf);
-    kernel.setArg(7, colsBuf);
-    kernel.setArg(8, valuesBuf);
-    kernel.setArg(9, bBuf);
-    kernel.setArg(10, resultBuf);
-
     std::vector<float> x(matrixDimension);
     std::vector<float> result(2);
+    clock_t start = clock();
+    {
+        cl::Buffer rowsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int),
+                           rowIds.data());
+        cl::Buffer colsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int),
+                           colIds.data());
+        cl::Buffer valuesBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(float),
+                             values.data());
+        cl::Buffer bBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, matrixDimension * sizeof(float),
+                        b.data());
+        cl::Buffer xBuf(context, CL_MEM_READ_WRITE, matrixDimension * sizeof(float));
+        cl::Buffer resultBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, 2 * sizeof(float));
 
-    cl::CommandQueue queue(context, device);
-    queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(matrixDimension), cl::NDRange(matrixDimension));
-    queue.enqueueReadBuffer(xBuf, CL_TRUE, 0, x.size() * sizeof(float), x.data());
-    queue.enqueueReadBuffer(resultBuf, CL_TRUE, 0, result.size() * sizeof(float), result.data());
+        cl::Kernel kernel(program, "conjugateGradient");
+        int kernelWorkGroupSize = kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
+        std::cout << "KERNEL_WORK_GROUP_SIZE: " << kernelWorkGroupSize << std::endl;
+        connect->sendMessage(kernelWorkGroupSize, sizeof(int));
+        if (matrixDimension > kernelWorkGroupSize)
+            return;
+
+        kernel.setArg(0, sizeof(int), &matrixDimension);
+        kernel.setArg(1, sizeof(int), &numberOfValues);
+        kernel.setArg(2, cl::Local(matrixDimension * sizeof(float)));
+        kernel.setArg(3, xBuf);
+//    kernel.setArg(3, cl::Local(dimension * sizeof(float)));
+        kernel.setArg(4, cl::Local(matrixDimension * sizeof(float)));
+        kernel.setArg(5, cl::Local(matrixDimension * sizeof(float)));
+        kernel.setArg(6, rowsBuf);
+        kernel.setArg(7, colsBuf);
+        kernel.setArg(8, valuesBuf);
+        kernel.setArg(9, bBuf);
+        kernel.setArg(10, resultBuf);
+
+        cl::CommandQueue queue(context, device);
+        queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(matrixDimension), cl::NDRange(matrixDimension));
+        queue.enqueueReadBuffer(xBuf, CL_TRUE, 0, x.size() * sizeof(float), x.data());
+        queue.enqueueReadBuffer(resultBuf, CL_TRUE, 0, result.size() * sizeof(float), result.data());
+    }
+    clock_t end = clock();
+    double computeTime = (1000.0 * (end - start)) / CLOCKS_PER_SEC;
 
     connect->sendMessage(*x.data(), x.size() * sizeof(float));
     connect->sendMessage(*result.data(), result.size() * sizeof(float));
+    connect->sendMessage(computeTime, sizeof(double));
 }
