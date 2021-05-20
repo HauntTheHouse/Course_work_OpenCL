@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 // #include <netdb.h>
 
 class TCPSocket
@@ -14,16 +15,16 @@ private:
 public:
     TCPSocket() = default;
     TCPSocket(const int &domain, const int& type);
-    ~TCPSocket() { shutdown(socketFD, 2); }
-
+//    ~TCPSocket() { shutdown(socketFD, 2); }
+    ~TCPSocket() { close(socketFD); }
     void setSocketAddress(const int &type, const in_addr_t& address, const uint16_t& port);
     void bindSocket();
     void listenForClients(const int& countOfConnections) const;
     void connectToServer();
     void acceptSocket(const TCPSocket* server);
     template <typename T>
-    void receiveMessage(T& msg, const int& len) { recv(socketFD, &msg, len, 0); }
+    void receiveMessage(T& msg, int len) { recv(socketFD, &msg, len, 0); }
     template <typename T>
-    void sendMessage(const T& msg, const int& len) { send(socketFD, &msg, len, 0); };
+    void sendMessage(const T& msg, int len) { send(socketFD, &msg, len, 0); }; //MSG_NOSIGNAL
 };
 #endif // TCPSocket_h
