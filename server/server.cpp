@@ -124,18 +124,16 @@ void solveLinearEquation(TCPSocket* connect)
     std::vector<float> result(2);
     clock_t start = clock();
     {
-        cl::Buffer rowsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int),
-                           rowIds.data());
-        cl::Buffer colsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int),
-                           colIds.data());
-        cl::Buffer valuesBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(float),
-                             values.data());
-        cl::Buffer bBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, matrixDimension * sizeof(float),
-                        b.data());
+        cl::Buffer rowsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int), rowIds.data());
+        cl::Buffer colsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int), colIds.data());
+        cl::Buffer valuesBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(float), values.data());
+        cl::Buffer bBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, matrixDimension * sizeof(float), b.data());
         cl::Buffer xBuf(context, CL_MEM_READ_WRITE, matrixDimension * sizeof(float));
         cl::Buffer resultBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, 2 * sizeof(float));
 
         cl::Kernel kernel(program, "conjugateGradient");
+//        cl::Kernel kernel(program, "steepestDescent");
+
         int kernelWorkGroupSize = kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device);
         std::cout << "KERNEL_WORK_GROUP_SIZE: " << kernelWorkGroupSize << std::endl;
         connect->sendMessage(kernelWorkGroupSize, sizeof(int));
@@ -146,7 +144,6 @@ void solveLinearEquation(TCPSocket* connect)
         kernel.setArg(1, sizeof(int), &numberOfValues);
         kernel.setArg(2, cl::Local(matrixDimension * sizeof(float)));
         kernel.setArg(3, xBuf);
-//    kernel.setArg(3, cl::Local(dimension * sizeof(float)));
         kernel.setArg(4, cl::Local(matrixDimension * sizeof(float)));
         kernel.setArg(5, cl::Local(matrixDimension * sizeof(float)));
         kernel.setArg(6, rowsBuf);

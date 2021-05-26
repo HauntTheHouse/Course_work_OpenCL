@@ -1,5 +1,5 @@
 __kernel void steepestDescent(int dim, int num_vals, __local float *r,
-              __local float *x, __local float* A_times_r, __global int *rows,
+              __global float *x, __local float* A_times_r, __global int *rows,
               __global int *cols, __global float *A, __global float *b,
               __global float *result)
 {

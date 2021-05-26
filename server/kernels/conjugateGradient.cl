@@ -3,8 +3,6 @@ __kernel void conjugateGradient(int dim, int num_vals,
                               __global int *rows, __global int *cols, __global float *A,
                               __global float *b, __global float *result)
 {
-//    local float
-//  t)r[dim], x[dim], A_times_p[dim], p[dim];
     local float alpha, r_length, old_r_dot_r, new_r_dot_r;
     local int iteration;
 
@@ -47,7 +45,7 @@ __kernel void conjugateGradient(int dim, int num_vals,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     iteration = 0;
-    while ((iteration < 1000) && (r_length >= 0.01f))
+    while ((iteration < 2000) && (r_length >= 0.01f))
     {
         A_times_p[id] = 0.0;
         for (int i = start_index; i <= end_index; i++)
@@ -93,6 +91,6 @@ __kernel void conjugateGradient(int dim, int num_vals,
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    result[0] = (float) iteration;
+    result[0] = (float)iteration;
     result[1] = r_length;
 }
