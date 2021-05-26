@@ -91,12 +91,12 @@ void solveLinearEquation(TCPSocket* connect)
 
     std::vector<int> rowIds(numberOfValues);
     std::vector<int> colIds(numberOfValues);
-    std::vector<float> values(numberOfValues);
-    std::vector<float> b(matrixDimension);
+    std::vector<double> values(numberOfValues);
+    std::vector<double> b(matrixDimension);
+    connect->receiveMessage(*values.data(), numberOfValues * sizeof(double));
     connect->receiveMessage(*rowIds.data(), numberOfValues * sizeof(int));
     connect->receiveMessage(*colIds.data(), numberOfValues * sizeof(int));
-    connect->receiveMessage(*values.data(), numberOfValues * sizeof(float));
-    connect->receiveMessage(*b.data(), matrixDimension * sizeof(float));
+    connect->receiveMessage(*b.data(), matrixDimension * sizeof(double));
 
     std::string method = "conjugateGradient";
 //    std::string method = "steepestDescent";
@@ -120,16 +120,16 @@ void solveLinearEquation(TCPSocket* connect)
         exit(1);
     }
 
-    std::vector<float> x(matrixDimension);
-    std::vector<float> result(2);
+    std::vector<double> x(matrixDimension);
+    std::vector<double> result(2);
     clock_t start = clock();
     {
         cl::Buffer rowsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int), rowIds.data());
         cl::Buffer colsBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(int), colIds.data());
-        cl::Buffer valuesBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(float), values.data());
-        cl::Buffer bBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, matrixDimension * sizeof(float), b.data());
-        cl::Buffer xBuf(context, CL_MEM_READ_WRITE, matrixDimension * sizeof(float));
-        cl::Buffer resultBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, 2 * sizeof(float));
+        cl::Buffer valuesBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, numberOfValues * sizeof(double), values.data());
+        cl::Buffer bBuf(context, CL_MEM_READ_ONLY | CL_MEM_HOST_NO_ACCESS | CL_MEM_COPY_HOST_PTR, matrixDimension * sizeof(double), b.data());
+        cl::Buffer xBuf(context, CL_MEM_READ_WRITE, matrixDimension * sizeof(double));
+        cl::Buffer resultBuf(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY, 2 * sizeof(double));
 
         cl::Kernel kernel(program, "conjugateGradient");
 //        cl::Kernel kernel(program, "steepestDescent");
@@ -142,10 +142,10 @@ void solveLinearEquation(TCPSocket* connect)
 
         kernel.setArg(0, sizeof(int), &matrixDimension);
         kernel.setArg(1, sizeof(int), &numberOfValues);
-        kernel.setArg(2, cl::Local(matrixDimension * sizeof(float)));
+        kernel.setArg(2, cl::Local(matrixDimension * sizeof(double)));
         kernel.setArg(3, xBuf);
-        kernel.setArg(4, cl::Local(matrixDimension * sizeof(float)));
-        kernel.setArg(5, cl::Local(matrixDimension * sizeof(float)));
+        kernel.setArg(4, cl::Local(matrixDimension * sizeof(double)));
+        kernel.setArg(5, cl::Local(matrixDimension * sizeof(double)));
         kernel.setArg(6, rowsBuf);
         kernel.setArg(7, colsBuf);
         kernel.setArg(8, valuesBuf);
@@ -154,13 +154,13 @@ void solveLinearEquation(TCPSocket* connect)
 
         cl::CommandQueue queue(context, device);
         queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(matrixDimension), cl::NDRange(matrixDimension));
-        queue.enqueueReadBuffer(xBuf, CL_TRUE, 0, x.size() * sizeof(float), x.data());
-        queue.enqueueReadBuffer(resultBuf, CL_TRUE, 0, result.size() * sizeof(float), result.data());
+        queue.enqueueReadBuffer(xBuf, CL_TRUE, 0, x.size() * sizeof(double), x.data());
+        queue.enqueueReadBuffer(resultBuf, CL_TRUE, 0, result.size() * sizeof(double), result.data());
     }
     clock_t end = clock();
     double computeTime = (1000.0 * (end - start)) / CLOCKS_PER_SEC;
 
-    connect->sendMessage(*x.data(), x.size() * sizeof(float));
-    connect->sendMessage(*result.data(), result.size() * sizeof(float));
+    connect->sendMessage(*x.data(), x.size() * sizeof(double));
+    connect->sendMessage(*result.data(), result.size() * sizeof(double));
     connect->sendMessage(computeTime, sizeof(double));
 }

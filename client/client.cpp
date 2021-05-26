@@ -67,17 +67,17 @@ int main()
                 switch (chooseFillVector)
                 {
                     case 1:
-                        float minValue, maxValue;
+                        double minValue, maxValue;
                         std::cout << "From: ";
-                        enterValue(minValue, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity());
+                        enterValue(minValue, -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity());
                         std::cout << "To: ";
-                        enterValue(maxValue, minValue, std::numeric_limits<float>::infinity());
+                        enterValue(maxValue, minValue, std::numeric_limits<double>::infinity());
                         sparseMatrix->fillVectorBWithRandomValues(minValue, maxValue);
                         break;
                     case 2:
-                        float value;
+                        double value;
                         std::cout << "Enter value: ";
-                        enterValue(value, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity());
+                        enterValue(value, -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity());
                         sparseMatrix->fillVectorBFullyWithConcreteValue(value);
                         break;
                     default:
@@ -133,14 +133,13 @@ int main()
                 clientSocket->sendMessage(sparseMatrix->getMatrixDimension(), sizeof(int));
                 clientSocket->sendMessage(sparseMatrix->getNumberOfValues(), sizeof(int));
 
+                clientSocket->sendMessage(*sparseMatrix->getValues(), sparseMatrix->getNumberOfValues() * sizeof(double));
                 clientSocket->sendMessage(*sparseMatrix->getRowIds(), sparseMatrix->getNumberOfValues() * sizeof(int));
                 clientSocket->sendMessage(*sparseMatrix->getColIds(), sparseMatrix->getNumberOfValues() * sizeof(int));
-                clientSocket->sendMessage(*sparseMatrix->getValues(), sparseMatrix->getNumberOfValues() * sizeof(float));
+                clientSocket->sendMessage(*sparseMatrix->getVectorB(), sparseMatrix->getMatrixDimension() * sizeof(double));
 
-                clientSocket->sendMessage(*sparseMatrix->getVectorB(), sparseMatrix->getMatrixDimension() * sizeof(float));
-
-                std::vector<float> x(sparseMatrix->getMatrixDimension());
-                std::vector<float> result(2);
+                std::vector<double> x(sparseMatrix->getMatrixDimension());
+                std::vector<double> result(2);
                 double computeTime;
 
                 int kernelWorkGroupSize;
@@ -151,10 +150,13 @@ int main()
                     break;
                 }
 
-                clientSocket->receiveMessage(*x.data(), x.size() * sizeof(float));
-                clientSocket->receiveMessage(*result.data(), result.size() * sizeof(float));
+                clientSocket->receiveMessage(*x.data(), x.size() * sizeof(double));
+                clientSocket->receiveMessage(*result.data(), result.size() * sizeof(double));
                 clientSocket->receiveMessage(computeTime, sizeof(double));
 
+//                std::cout.setf(std::ios::fixed, std::ios::floatfield);
+                std::cout.setf(std::ios::showpoint);
+                std::cout.precision(10);
                 std::cout << "x: ";
                 for (auto value : x)
                     std::cout << "{" << value << "}, ";

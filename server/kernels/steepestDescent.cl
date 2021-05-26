@@ -31,7 +31,7 @@ __kernel void steepestDescent(int dim, int num_vals, __local float *r,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     iteration = 0;
-    while ((iteration < 2000) && (r_length >= 0.01f))
+    while ((iteration < 5000) && (r_length >= 0.001f))
     {
         A_times_r[id] = 0.0f;
         for (int i = start_index; i <= end_index; i++)

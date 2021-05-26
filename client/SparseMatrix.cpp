@@ -38,13 +38,13 @@ void SparseMatrix::open(const std::string &pathToMatrix)
     }
 }
 
-void SparseMatrix::fillVectorBWithRandomValues(float minValue, float maxValue)
+void SparseMatrix::fillVectorBWithRandomValues(double minValue, double maxValue)
 {
     srand(time(nullptr));
-    std::generate(b.begin(), b.end(), [minValue, maxValue]{ return (rand()/(float)RAND_MAX) * (maxValue - minValue) + minValue; });
+    std::generate(b.begin(), b.end(), [minValue, maxValue]{ return (rand()/(double)RAND_MAX) * (maxValue - minValue) + minValue; });
 }
 
-void SparseMatrix::fillVectorBFullyWithConcreteValue(float value)
+void SparseMatrix::fillVectorBFullyWithConcreteValue(double value)
 {
     std::generate(b.begin(), b.end(), [value]{ return value; });
 }
